@@ -1,0 +1,5 @@
+# ignoring the STM CUBE IDE META DATA file
+**/.metadata
+
+# Ignoring the test projects made to quickly test some pinout
+**/test/**/
