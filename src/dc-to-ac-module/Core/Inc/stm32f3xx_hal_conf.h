@@ -1,17 +1,19 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    stm32f3xx_hal_conf.h
-  * @brief   HAL configuration file.
+  * @file           : stm32f3xx_hal_conf.h
+  * @brief          : HAL configuration file.
+  * @author         : Tygo van den Hurk
+  * @author         : Gabriël Nusselder
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2016 STMicroelectronics.
+  * Copyright (c) 2024 Group 1 for DBL Wireless Energy Transfer a course at TU/e
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * in the root directory of this repository. If no LICENSE file comes with
+  * this software, it is provided AS-IS.
   *
   ******************************************************************************
   */
