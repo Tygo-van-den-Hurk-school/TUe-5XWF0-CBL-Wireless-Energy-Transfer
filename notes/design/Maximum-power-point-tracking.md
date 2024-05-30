@@ -18,7 +18,7 @@ By increasing the duty cycle you can see if you can get more power out of the ge
 #define DUTY_CYCLE_STEP_SIZE 0.01f
 
 /**
- * Gets the current powerdraw based on a certain duty cycle.
+ * @brief Gets the current powerdraw based on a certain duty cycle.
  */
 float getPowerUsing(const float dutyCycle) {
 
@@ -31,14 +31,14 @@ float getPowerUsing(const float dutyCycle) {
     return power;
 }
 
-/** Represents the current duty cycle that boost converter is running on. */
+/** @brief Represents the current duty cycle that boost converter is running on. */
 float currentDutyCycle = INITIAL_DUTY_CYCLE;
 
-/** Represents the step size of the duty cycle that boost converter is changing with. */
+/** @brief Represents the step size of the duty cycle that boost converter is changing with. */
 float stepSize = DUTY_CYCLE_STEP_SIZE;
 
 /**
- * Updates the MPPT to the better duty cycle.
+ * @brief Updates the MPPT to the better duty cycle.
  */
 void maintain_MPPT() {
     
