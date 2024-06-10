@@ -2,4 +2,4 @@
 **/.metadata
 
 # Ignoring the test projects made to quickly test some pinout
-**/test/**/
+# **/test/**/
