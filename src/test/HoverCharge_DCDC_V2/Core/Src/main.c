@@ -24,6 +24,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "string.h"
+#include <stdbool.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +34,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define EVER                 		true
+#define MILISECONDS_IN_A_SECOND 	1000
 
+#define INITIAL_DUTY_CYCLE   		0.5f
+#define DUTY_CYCLE_STEP_SIZE 		0.01f
+
+#define HAL_ERROR			 		1
+#define OVERCURRENT_ERROR 	 	    2
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,6 +60,10 @@ TIM_HandleTypeDef htim1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+/** @brief Represents the step size of the duty cycle that boost converter is changing with. */
+float stepSize = DUTY_CYCLE_STEP_SIZE;
+
 float ADC_Factor_V_IN =  1*(3.3f/4095.0f);
 float ADC_Factor_V_OUT = 1*(3.3f/4095.0f);
 float ADC_Factor_I_OUT = 1*(3.3f/4095.0f);
@@ -81,6 +93,11 @@ uint32_t PWM_Freq = 43000;
 float PWM_DutyC = 50;
 int32_t PWM_Period;
 int32_t PWM_PulseWidth;
+
+/** @brief Represents the current duty cycle that boost converter is running on. */
+float currentDutyCycle = INITIAL_DUTY_CYCLE;
+float currentPower = 0.0f;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -548,6 +565,37 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/**
+ * @brief Updates the MPPT to the better duty cycle.
+ */
+void maintain_MPPT() {
+
+	const float newDutyCycle = (currentDutyCycle + stepSize);
+
+	static float powerWithNewDutyCycle;
+    /* Getting the new power */ {
+    	PWM_PulseWidth = (int) ((PWM_Period * newDutyCycle)/100);
+    	__HAL_TIM_SET_COMPARE (&htim1, TIM_CHANNEL_1, PWM_PulseWidth);
+    	powerWithNewDutyCycle = ( V_DCDC_OUT * I_DCDC_OUT );
+    }
+
+    /* changing the duty cycle if the new one is better. */ {
+        if (powerWithNewDutyCycle > currentPower) {
+            currentDutyCycle = newDutyCycle;
+        	PWM_PulseWidth = (int) ((PWM_Period * newDutyCycle)/100);
+        	__HAL_TIM_SET_COMPARE (&htim1, TIM_CHANNEL_1, PWM_PulseWidth);
+        }
+    }
+
+    /* Changing direction if we were getting further away. */ {
+        if (powerWithNewDutyCycle < currentPower) {
+        	stepSize = -stepSize;
+        }
+    }
+}
+
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	UNUSED(hadc);
