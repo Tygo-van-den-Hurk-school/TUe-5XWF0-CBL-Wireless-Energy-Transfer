@@ -65,7 +65,7 @@ float Factor_ADC_I_CURR = 1* (3.3f/4095.0f);
 
 
 	//PWM
-	uint32_t PWM_Freq = 100000;
+	uint32_t PWM_Freq = 92000;
 	float PWM_DutyC = 50;
 	int32_t PWM_Period;
 	int32_t PWM_PulseWidth;
