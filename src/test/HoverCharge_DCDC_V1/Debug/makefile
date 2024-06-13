@@ -60,8 +60,8 @@ all: main-build
 main-build: HoverCharge_DCDC_V1.elf secondary-outputs
 
 # Tool invocations
-HoverCharge_DCDC_V1.elf HoverCharge_DCDC_V1.map: $(OBJS) $(USER_OBJS) C:\Project_STM32\HoverCharge_DCDC_V1\STM32F303K8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "HoverCharge_DCDC_V1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Project_STM32\HoverCharge_DCDC_V1\STM32F303K8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HoverCharge_DCDC_V1.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+HoverCharge_DCDC_V1.elf HoverCharge_DCDC_V1.map: $(OBJS) $(USER_OBJS) C:\Users\20202523\Documents\Wireless\ charging\TUe-5XWF0-CBL-Wireless-Energy-Transfer\src\test\HoverCharge_DCDC_V1\STM32F303K8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "HoverCharge_DCDC_V1.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\20202523\Documents\Wireless charging\TUe-5XWF0-CBL-Wireless-Energy-Transfer\src\test\HoverCharge_DCDC_V1\STM32F303K8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HoverCharge_DCDC_V1.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -52,6 +52,8 @@ TIM_HandleTypeDef htim1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+
 //UART
 uint8_t TxStartMessage[] = "\r\n***** Group 1 - HoverCharge - 5XWF0 *****\r\n";
 
@@ -61,15 +63,19 @@ uint32_t ADC2_Buff[2];
 
 uint32_t adc_val_1;
 float V_DCDC_OUT=0.0f;
+float Factor_ADC_V_OUT = 20.0f* (3.3f/4095.0f);
 
 uint32_t adc_val_2;
 float I_DCDC_OUT=0.0f;
+float Factor_ADC_I_OUT =  (1.1f/4095.0f);
 
 uint32_t adc_val_3;
 float V_DCDC_IN=0.0f;
+float Factor_ADC_V_IN = (3.3f/4095.0f);
 
 uint32_t adc_val_4;
 float I_IND=0.0f;
+float Factor_ADC_I_IND = (3.3f/4095.0f);
 
 //PWM
 uint32_t PWM_Freq = 43000;
@@ -172,7 +178,7 @@ int main(void)
 
 
 	  	  printf("\r\n V_DCDC_IN: %.2f V |  V_DCDC_OUT: %.2f V | I_IND: %.2f A  |  I_DCDC_OUT: %.2f A  |  Duty Cycle: %.2f", V_DCDC_IN, V_DCDC_OUT, I_IND,I_DCDC_OUT, PWM_DutyC);
-	  	  HAL_Delay(1000);
+	  	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -256,7 +262,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 2;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
@@ -329,7 +335,7 @@ static void MX_ADC2_Init(void)
   hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
   hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc2.Init.NbrOfConversion = 2;
-  hadc2.Init.DMAContinuousRequests = DISABLE;
+  hadc2.Init.DMAContinuousRequests = ENABLE;
   hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc2.Init.LowPowerAutoWait = DISABLE;
   hadc2.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
@@ -547,16 +553,18 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	UNUSED(hadc);
 
 		adc_val_1 = ADC1_Buff[0];
-		V_DCDC_OUT = (((float)adc_val_1)/4095.0f)*3.3f;
+		V_DCDC_OUT = ((float)adc_val_1)*Factor_ADC_V_OUT;
 
 		adc_val_2 = ADC1_Buff[1];
-		I_DCDC_OUT = (((float)adc_val_2)/4095.0f)*3.3f;
+		I_DCDC_OUT = ((float)adc_val_2)*Factor_ADC_I_OUT;
 
 		adc_val_3 = ADC2_Buff[0];
-		V_DCDC_IN = (((float)adc_val_3)/4095.0f)*3.3f;
+		V_DCDC_IN = ((float)adc_val_3)*Factor_ADC_V_IN;
 
 		adc_val_4 = ADC2_Buff[1];
-		I_IND = (((float)adc_val_4)/4095.0f)*3.3f;
+		I_IND = ((float)adc_val_4)*Factor_ADC_I_IND;
+
+
 
 }
 /* USER CODE END 4 */

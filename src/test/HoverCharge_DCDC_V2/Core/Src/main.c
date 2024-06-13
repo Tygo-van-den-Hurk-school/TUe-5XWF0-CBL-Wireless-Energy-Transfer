@@ -37,8 +37,8 @@
 #define EVER                 		true
 #define MILISECONDS_IN_A_SECOND 	1000
 
-#define INITIAL_DUTY_CYCLE   		0.5f
-#define DUTY_CYCLE_STEP_SIZE 		0.01f
+#define INITIAL_DUTY_CYCLE   		50.0f
+#define DUTY_CYCLE_STEP_SIZE 		0.1f
 
 #define HAL_ERROR			 		1
 #define OVERCURRENT_ERROR 	 	    2
@@ -64,11 +64,6 @@ UART_HandleTypeDef huart2;
 /** @brief Represents the step size of the duty cycle that boost converter is changing with. */
 float stepSize = DUTY_CYCLE_STEP_SIZE;
 
-float ADC_Factor_V_IN =  1*(3.3f/4095.0f);
-float ADC_Factor_V_OUT = 1*(3.3f/4095.0f);
-float ADC_Factor_I_OUT = 1*(3.3f/4095.0f);
-float ADC_Factor_I_IND = 1*(3.3f/4095.0f);
-
 //UART
 uint8_t TxStartMessage[] = "\r\n***** Group 1 - HoverCharge - 5XWF0 *****\r\n";
 
@@ -78,21 +73,27 @@ uint32_t ADC2_Buff[2];
 
 uint32_t adc_val_1;
 float V_DCDC_OUT=0.0f;
+float Factor_ADC_V_OUT = 21.5f* (3.3f/4095.0f);
 
 uint32_t adc_val_2;
 float I_DCDC_OUT=0.0f;
+float Factor_ADC_I_OUT =2.2f*(1.1f/4095.0f);
 
 uint32_t adc_val_3;
 float V_DCDC_IN=0.0f;
+float Factor_ADC_V_IN = (3.3f/4095.0f);
 
 uint32_t adc_val_4;
 float I_IND=0.0f;
+float Factor_ADC_I_IND =  (3.3f/4095.0f);
+
 
 //PWM
 uint32_t PWM_Freq = 43000;
 float PWM_DutyC = 50;
 int32_t PWM_Period;
 int32_t PWM_PulseWidth;
+float power = 0;
 
 /** @brief Represents the current duty cycle that boost converter is running on. */
 float currentDutyCycle = INITIAL_DUTY_CYCLE;
@@ -108,6 +109,7 @@ static void MX_TIM1_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_ADC2_Init(void);
+static void maintain_MPPT();
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -190,12 +192,11 @@ int main(void)
 	 // PWM_DutyC = V_DCDC_OUT*111.11f;
 
 
-	  	  PWM_PulseWidth = (int)((PWM_Period * PWM_DutyC)/100);
-	  	  __HAL_TIM_SET_COMPARE (&htim1, TIM_CHANNEL_1, PWM_PulseWidth);
+	  	  maintain_MPPT();
+	  	  power = V_DCDC_OUT * I_DCDC_OUT;
 
-
-	  	  printf("\r\n V_DCDC_IN: %.2f V |  V_DCDC_OUT: %.2f V | I_IND: %.2f A  |  I_DCDC_OUT: %.2f A  |  Duty Cycle: %.2f", V_DCDC_IN, V_DCDC_OUT, I_IND,I_DCDC_OUT, PWM_DutyC);
-	  	  HAL_Delay(100);
+//	  	  printf("\r\n Power: %.2f W |  V_DCDC_OUT: %.2f V | I_IND: %.2f A  |  I_DCDC_OUT: %.2f A  |  Duty Cycle: %.2f", power, V_DCDC_OUT, I_IND,I_DCDC_OUT, PWM_DutyC);
+	  	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -279,7 +280,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 2;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
@@ -352,7 +353,7 @@ static void MX_ADC2_Init(void)
   hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
   hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc2.Init.NbrOfConversion = 2;
-  hadc2.Init.DMAContinuousRequests = DISABLE;
+  hadc2.Init.DMAContinuousRequests = ENABLE;
   hadc2.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   hadc2.Init.LowPowerAutoWait = DISABLE;
   hadc2.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
@@ -569,7 +570,7 @@ static void MX_GPIO_Init(void)
 /**
  * @brief Updates the MPPT to the better duty cycle.
  */
-void maintain_MPPT() {
+static void maintain_MPPT() {
 
 	const float newDutyCycle = (currentDutyCycle + stepSize);
 
@@ -580,6 +581,7 @@ void maintain_MPPT() {
     	powerWithNewDutyCycle = ( V_DCDC_OUT * I_DCDC_OUT );
     }
 
+    printf(" newDutyCycle %.2f | PWM_PulseWidth %ld | currentPower %.2f | powerWithNewDutyCycle %.2f | V_DCDC_OUT %.2f | I_DCDC_OUT %.2f\r\n", newDutyCycle, PWM_PulseWidth, currentPower, powerWithNewDutyCycle, V_DCDC_OUT, I_DCDC_OUT);
     /* changing the duty cycle if the new one is better. */ {
         if (powerWithNewDutyCycle > currentPower) {
             currentDutyCycle = newDutyCycle;
@@ -601,16 +603,16 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	UNUSED(hadc);
 
 		adc_val_1 = ADC1_Buff[0];
-		V_DCDC_OUT = ADC_Factor_V_OUT * (float)adc_val_1;
+		V_DCDC_OUT = Factor_ADC_V_OUT * (float)adc_val_1;
 
 		adc_val_2 = ADC1_Buff[1];
-		I_DCDC_OUT = ADC_Factor_I_OUT * (float)adc_val_2;
+		I_DCDC_OUT = Factor_ADC_I_OUT * (float)adc_val_2;
 
 		adc_val_3 = ADC2_Buff[0];
-		V_DCDC_IN = ADC_Factor_V_IN * (float)adc_val_3;
+		V_DCDC_IN = Factor_ADC_V_IN * (float)adc_val_3;
 
 		adc_val_4 = ADC2_Buff[1];
-		I_IND = ADC_Factor_I_IND * (float)adc_val_4;
+		I_IND = Factor_ADC_I_IND * (float)adc_val_4;
 
 }
 /* USER CODE END 4 */
