@@ -38,7 +38,10 @@
 #define MILISECONDS_IN_A_SECOND 	1000
 
 #define INITIAL_DUTY_CYCLE   		50.0f
-#define DUTY_CYCLE_STEP_SIZE 		0.1f
+#define DUTY_CYCLE_STEP_SIZE 		2.0f
+
+#define DUTY_CYCLE_MAX 		90
+#define DUTY_CYCLE_MIN 		20
 
 #define HAL_ERROR			 		1
 #define OVERCURRENT_ERROR 	 	    2
@@ -77,7 +80,7 @@ float Factor_ADC_V_OUT = 21.5f* (3.3f/4095.0f);
 
 uint32_t adc_val_2;
 float I_DCDC_OUT=0.0f;
-float Factor_ADC_I_OUT =2.2f*(1.1f/4095.0f);
+float Factor_ADC_I_OUT = 1.5f * (3.3f/4095.0f);
 
 uint32_t adc_val_3;
 float V_DCDC_IN=0.0f;
@@ -90,10 +93,12 @@ float Factor_ADC_I_IND =  (3.3f/4095.0f);
 
 //PWM
 uint32_t PWM_Freq = 43000;
-float PWM_DutyC = 50;
+float PWM_DutyC = 70;
 int32_t PWM_Period;
 int32_t PWM_PulseWidth;
 float power = 0;
+
+
 
 /** @brief Represents the current duty cycle that boost converter is running on. */
 float currentDutyCycle = INITIAL_DUTY_CYCLE;
@@ -191,11 +196,11 @@ int main(void)
 
 	 // PWM_DutyC = V_DCDC_OUT*111.11f;
 
-
-	  	  maintain_MPPT();
+	  	 // detect_Load();
+	  	  //maintain_MPPT();
 	  	  power = V_DCDC_OUT * I_DCDC_OUT;
 
-//	  	  printf("\r\n Power: %.2f W |  V_DCDC_OUT: %.2f V | I_IND: %.2f A  |  I_DCDC_OUT: %.2f A  |  Duty Cycle: %.2f", power, V_DCDC_OUT, I_IND,I_DCDC_OUT, PWM_DutyC);
+	  	 // printf("\r\n Power: %.2f W | V_DCDC_IN: %.2f V |  V_DCDC_OUT: %.2f V | I_IND: %.2f A  |  I_DCDC_OUT: %.2f A  |  Duty Cycle: %.2f", power,V_DCDC_IN, V_DCDC_OUT, I_IND,I_DCDC_OUT, PWM_DutyC);
 	  	  HAL_Delay(1);
     /* USER CODE END WHILE */
 
@@ -572,18 +577,44 @@ static void MX_GPIO_Init(void)
  */
 static void maintain_MPPT() {
 
-	const float newDutyCycle = (currentDutyCycle + stepSize);
+	float newDutyCycle = (currentDutyCycle + stepSize);
+	if(newDutyCycle > DUTY_CYCLE_MAX){
+		newDutyCycle = DUTY_CYCLE_MAX;
+	}
+	if(newDutyCycle < DUTY_CYCLE_MIN){
+			newDutyCycle = DUTY_CYCLE_MIN;
+		}
+
+	currentPower = V_DCDC_OUT * I_DCDC_OUT;
+
 
 	static float powerWithNewDutyCycle;
     /* Getting the new power */ {
     	PWM_PulseWidth = (int) ((PWM_Period * newDutyCycle)/100);
     	__HAL_TIM_SET_COMPARE (&htim1, TIM_CHANNEL_1, PWM_PulseWidth);
+    	HAL_Delay(1000);
     	powerWithNewDutyCycle = ( V_DCDC_OUT * I_DCDC_OUT );
+
     }
 
-    printf(" newDutyCycle %.2f | PWM_PulseWidth %ld | currentPower %.2f | powerWithNewDutyCycle %.2f | V_DCDC_OUT %.2f | I_DCDC_OUT %.2f\r\n", newDutyCycle, PWM_PulseWidth, currentPower, powerWithNewDutyCycle, V_DCDC_OUT, I_DCDC_OUT);
     /* changing the duty cycle if the new one is better. */ {
-        if (powerWithNewDutyCycle > currentPower) {
+    float I_DCDC_IN_CAlC = (I_DCDC_OUT/(1-(newDutyCycle/100.0f)));
+    printf(" I_DCDC_IN_CALC %.2f | currentDutyCycle %.2f | currentPower %.2f | powerWithNewDutyCycle %.2f | V_DCDC_OUT %.2f | I_DCDC_OUT %.2f\r\n", I_DCDC_IN_CAlC, currentDutyCycle, currentPower, powerWithNewDutyCycle, V_DCDC_OUT, I_DCDC_OUT);
+
+    	if((I_DCDC_IN_CAlC > 8.0f) || (V_DCDC_OUT >60.0f))   {
+    		currentDutyCycle = currentDutyCycle - abs(stepSize);
+    		PWM_PulseWidth = (int) ((PWM_Period * newDutyCycle)/100);
+    		__HAL_TIM_SET_COMPARE (&htim1, TIM_CHANNEL_1, PWM_PulseWidth);
+    		return;
+    	}
+    	if(newDutyCycle > DUTY_CYCLE_MAX){
+    		newDutyCycle = DUTY_CYCLE_MAX;
+    	}
+    	if(newDutyCycle < DUTY_CYCLE_MIN){
+    			newDutyCycle = DUTY_CYCLE_MIN;
+    		}
+
+    if (powerWithNewDutyCycle > (currentPower +1.0f)) {
             currentDutyCycle = newDutyCycle;
         	PWM_PulseWidth = (int) ((PWM_Period * newDutyCycle)/100);
         	__HAL_TIM_SET_COMPARE (&htim1, TIM_CHANNEL_1, PWM_PulseWidth);
@@ -591,11 +622,15 @@ static void maintain_MPPT() {
     }
 
     /* Changing direction if we were getting further away. */ {
-        if (powerWithNewDutyCycle < currentPower) {
+    if (powerWithNewDutyCycle < currentPower) {
         	stepSize = -stepSize;
         }
     }
+
 }
+
+
+
 
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
